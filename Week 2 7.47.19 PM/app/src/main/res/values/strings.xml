@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Eco-Friendly</string>
+
+    <string name="navigation_drawer_open">Eco-Friendly</string>
+    <string name="navigation_drawer_close">Eco-Friendly</string>
+
+    <string name="action_settings">Settings</string>
+</resources>
