@@ -104,6 +104,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
+    //used in the history map fragment to mark spots on map by using map helper
     public void onMapReady(GoogleMap map) {
         mMapHelper.setGoogleMap(map);
         setDate(getDate());
@@ -113,9 +114,9 @@ public class MainActivity extends AppCompatActivity
     public void setDate(String date){
         mMapHelper.paintHistory(date);
 
-        //mTripDataProcessor.loadData(date);
-        //Log.d("driven distance", "" + mTripDataProcessor.getDriveDistance());
-        //Log.d("walked distance", "" + mTripDataProcessor.getWalkDistance());
+        mTripDataProcessor.loadData(date);
+        Log.d("driven distance", "" + mTripDataProcessor.getDriveDisplacement());
+        Log.d("walked distance", "" + mTripDataProcessor.getWalkDisplacement());
     }
 
     private void startSettingsFragment(){
