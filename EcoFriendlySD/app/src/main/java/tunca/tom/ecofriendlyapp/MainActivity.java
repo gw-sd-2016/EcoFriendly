@@ -26,7 +26,7 @@ public class MainActivity extends AppCompatActivity
     private Fragment historyMapFragment;
     private FloatingActionButton fab;
     private MapHelper mMapHelper;
-    private TripDataProcessor mTripDataProcessor;
+    private TripDataProc mTripDataProc2;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity
         setContentView(R.layout.activity_main);
 
         mMapHelper = new MapHelper(getApplicationContext());
-        mTripDataProcessor = new TripDataProcessor(getApplicationContext());
+        mTripDataProc2 = new TripDataProc(this);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
@@ -110,13 +110,9 @@ public class MainActivity extends AppCompatActivity
         setDate(getDate());
     }
 
-    @Override
     public void setDate(String date){
         mMapHelper.paintHistory(date);
-
-        mTripDataProcessor.loadData(date);
-        Log.d("driven distance", "" + mTripDataProcessor.getDriveDisplacement());
-        Log.d("walked distance", "" + mTripDataProcessor.getWalkDisplacement());
+        mTripDataProc2.loadData(date);
     }
 
     private void startSettingsFragment(){
