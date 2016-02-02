@@ -117,6 +117,30 @@ public class TripDataProc implements AsyncResponse {
         }
     }
 
+
+    private Event findTripStart(Event start){
+        int uniqueEvents = 0;
+        Event temp = start;
+        int startIndex = history.indexOf(start);
+
+        for(int x = startIndex; x < history.size() - 1; x++){
+            if(distanceDifference(history.get(x+1), history.get(x)) > MIN_UNIQUE_DISTANCE){
+                if(uniqueEvents == 0){
+                    temp = history.get(x);
+                }
+                uniqueEvents++;
+            }else{
+                uniqueEvents = 0;
+            }
+            if(uniqueEvents > MIN_UNIQUE_EVENTS){
+                return temp;
+            }
+        }
+
+        return start;
+    }
+
+
     private Event findTripEnd(Event start){
         Event temp = start;
         int nonUniqueEvents = 0;
@@ -141,27 +165,7 @@ public class TripDataProc implements AsyncResponse {
         return history.get(history.size() - 1);
     }
 
-    private Event findTripStart(Event start){
-        int uniqueEvents = 0;
-        Event temp = start;
-        int startIndex = history.indexOf(start);
 
-        for(int x = startIndex; x < history.size() - 1; x++){
-            if(distanceDifference(history.get(x+1), history.get(x)) > MIN_UNIQUE_DISTANCE){
-                if(uniqueEvents == 0){
-                    temp = history.get(x);
-                }
-                uniqueEvents++;
-            }else{
-                uniqueEvents = 0;
-            }
-            if(uniqueEvents > MIN_UNIQUE_EVENTS){
-                return temp;
-            }
-        }
-
-        return start;
-    }
 
     private void checkTrips(){
         for(TripSeg s : segments){
@@ -237,7 +241,7 @@ public class TripDataProc implements AsyncResponse {
 
 
     //===============================================
-    //<Input, i forgot, output>
+    //took from google.com
     private class TimeEstimate extends AsyncTask<String, String, String[]>{
 
         @Override
@@ -249,7 +253,7 @@ public class TripDataProc implements AsyncResponse {
                 String url2 = "http://maps.googleapis.com/maps/api/directions/json?origin=" + params[0] + "&destination=" + params[1] + "&mode=" + "bicycling" + "&sensor=false";
                 String url3 = "http://maps.googleapis.com/maps/api/directions/json?origin=" + params[0] + "&destination=" + params[1] + "&mode=" + "transit" + "&sensor=false";
 
-
+                //apache help to pull info out of webpage
                 HttpPost httppost0 = new HttpPost(url0);
                 HttpPost httppost1 = new HttpPost(url1);
                 HttpPost httppost2 = new HttpPost(url2);
