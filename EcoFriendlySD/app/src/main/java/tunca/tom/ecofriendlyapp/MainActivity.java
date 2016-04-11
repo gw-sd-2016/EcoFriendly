@@ -5,6 +5,8 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
+import android.util.Log;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -16,15 +18,13 @@ import android.view.MenuItem;
 
 import com.google.android.gms.maps.GoogleMap;
 
-import java.util.ArrayList;
 import java.util.Calendar;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, HistoryMapFragment.OnGoogleMapFragmentListener, DatePickerFragment.OnDateSelectedListener {
 
     public static final int WALKING_EMISSION = 0;
-    public static final int METRO_EMISSION = 0;
-    public static final int BUS_EMISSION = 0;
+    public static final double TRANSIT_EMISSION = 1.725;
     public static final int BIKE_EMISSION = 0;
 
     private String mTitle = "Progress";
@@ -32,8 +32,12 @@ public class MainActivity extends AppCompatActivity
     private FloatingActionButton fab;
     private MapHelper mMapHelper;
     private TripDataProc mTripDataProc;
+    private String[] dates;
+    private FragmentManager mFragmentManager;
 
-    public ArrayList<Trip> mCompletedTripsList = new ArrayList<>();
+    private int loadingIndex = 0;
+
+    private NavigationView navigationView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,17 +64,58 @@ public class MainActivity extends AppCompatActivity
         drawer.setDrawerListener(toggle);
         toggle.syncState();
 
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
         fab.hide();
 
+        mFragmentManager = getSupportFragmentManager();
+        mFragmentManager.addOnBackStackChangedListener(new FragmentManager.OnBackStackChangedListener() {
+            @Override
+            public void onBackStackChanged() {
+                ProgressFragment progressFragment = (ProgressFragment)(mFragmentManager.findFragmentByTag("progress_fragment"));
+                HistoryFragment historyFragment = (HistoryFragment)(mFragmentManager.findFragmentByTag("history_fragment"));
+                HistoryMapFragment historyMapFragment = (HistoryMapFragment)(mFragmentManager.findFragmentByTag("history_map_fragment"));
+                SettingsFragment settingsFragment = (SettingsFragment)(mFragmentManager.findFragmentByTag("settings_fragment"));
+                SegmentFragment segmentFragment = (SegmentFragment)(mFragmentManager.findFragmentByTag("segment_fragment"));
+                if (progressFragment != null && progressFragment.isVisible()) {
+                    getSupportActionBar().setTitle("Progress");
+                }
+                if (historyFragment != null && historyFragment.isVisible()) {
+                    getSupportActionBar().setTitle("History");
+                }
+                if (historyMapFragment != null && historyMapFragment.isVisible()) {
+                    getSupportActionBar().setTitle("Map History");
+                }
+                if (settingsFragment != null && settingsFragment.isVisible()) {
+                    getSupportActionBar().setTitle("Settings");
+                }
+                if (segmentFragment != null && segmentFragment.isVisible()) {
+                    getSupportActionBar().setTitle(segmentFragment.getDate());
+                }
+            }
+        });
+
         if (savedInstanceState == null) {
+            Log.d("MainActivity","test");
             navigationView.getMenu().getItem(0).setChecked(true);
             getSupportActionBar().setTitle(mTitle);
             startProgressFragment();
-            mTripDataProc = new TripDataProc(this);
-            mTripDataProc.loadHistory();
+
+            dates = mTripDataProc.loadHistory(getDate());
+            loadNext();
         }
+    }
+
+    public NavigationView getNavigationView(){
+        return navigationView;
+    }
+
+    public void loadNext(){
+        if(loadingIndex < dates.length){
+            mTripDataProc = new TripDataProc(this);
+            mTripDataProc.loadData(dates[loadingIndex]);
+        }
+        loadingIndex++;
     }
 
     @Override
@@ -88,26 +133,15 @@ public class MainActivity extends AppCompatActivity
     public boolean onNavigationItemSelected(MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.nav_progress) {
-            startProgressFragment();
-            mTitle = "Progress";
-            getSupportActionBar().setTitle(mTitle);
-            fab.hide();
+            updateActionBar(0, "Progress");
         } else if (id == R.id.nav_history) {
-            startTripsFragment();
-            mTitle = "History";
-            getSupportActionBar().setTitle(mTitle);
-            fab.hide();
+            updateActionBar(1, "History");
         } else if (id == R.id.nav_share) {
-            //TODO
+            updateActionBar(2, "Share");
         } else if (id == R.id.nav_settings) {
-            startSettingsFragment();
-            mTitle = "Settings";
-            fab.hide();
+            updateActionBar(3, "Settings");
         } else if (id == R.id.nav_map_history){
-            startMapHistoryFragment();
-            mTitle = "Map History";
-            getSupportActionBar().setTitle(mTitle);
-            fab.show();
+            updateActionBar(4, "Map History");
         }
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
@@ -125,28 +159,89 @@ public class MainActivity extends AppCompatActivity
         mMapHelper.paintHistory(date);
     }
 
-    private void startSettingsFragment(){
-        SettingsFragment settingsFragment = new SettingsFragment();
-        FragmentManager mFragmentManager = getSupportFragmentManager();
-        mFragmentManager.beginTransaction().replace(R.id.content_frame, settingsFragment).commit();
+    public void updateActionBar(int fragment, String mTitle){
+        if(fragment < 4 && navigationView.getMenu().getItem(fragment).isChecked()){
+            return;
+        }
+        getSupportActionBar().setTitle(mTitle);
+        switch(fragment){
+            case 0:
+                startProgressFragment();
+                fab.hide();
+                break;
+            case 1:
+                startTripsFragment();
+                fab.hide();
+                break;
+            case 2:
+                //share
+                break;
+            case 3:
+                startSettingsFragment();
+                fab.hide();
+                break;
+            case 4:
+                startMapHistoryFragment();
+                fab.show();
+                break;
+            case 5:
+                startSegmentFragment(mTitle);
+                fab.hide();
+                break;
+        }
     }
 
     private void startProgressFragment() {
         Fragment progressFragment = new ProgressFragment();
-        FragmentManager mFragmentManager = getSupportFragmentManager();
-        mFragmentManager.beginTransaction().replace(R.id.content_frame, progressFragment).commit();
+        mFragmentManager
+                .beginTransaction()
+                .replace(R.id.content_frame, progressFragment, "progress_fragment")
+                .addToBackStack(null)
+                .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+                .commit();
     }
 
     private void startTripsFragment(){
         Fragment historyFragment = new HistoryFragment();
-        FragmentManager mFragmentManager = getSupportFragmentManager();
-        mFragmentManager.beginTransaction().replace(R.id.content_frame, historyFragment).commit();
+        mFragmentManager
+                .beginTransaction()
+                .replace(R.id.content_frame, historyFragment, "history_fragment")
+                .addToBackStack(null)
+                .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+                .commit();
     }
 
     private void startMapHistoryFragment(){
         historyMapFragment = new HistoryMapFragment();
-        FragmentManager mFragmentManager = getSupportFragmentManager();
-        mFragmentManager.beginTransaction().replace(R.id.content_frame, historyMapFragment).commit();
+        mFragmentManager
+                .beginTransaction()
+                .replace(R.id.content_frame, historyMapFragment, "history_map_fragment")
+                .addToBackStack(null)
+                .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+                .commit();
+    }
+
+    private void startSettingsFragment(){
+        SettingsFragment settingsFragment = new SettingsFragment();
+        mFragmentManager
+                .beginTransaction()
+                .replace(R.id.content_frame, settingsFragment, "settings_fragment")
+                .addToBackStack(null)
+                .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+                .commit();
+    }
+
+    private void startSegmentFragment(String date){
+        String mdate = date.substring(0, 2) + "/" + date.substring(2, 4) + "/" + date.substring(4, date.length()); //insert backslashes
+        getSupportActionBar().setTitle(mdate);
+        SegmentFragment segmentFragment = new SegmentFragment();
+        segmentFragment.setDate(date);
+        mFragmentManager
+                .beginTransaction()
+                .replace(R.id.content_frame, segmentFragment, "segment_fragment")
+                .addToBackStack(null)
+                .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+                .commit();
     }
 
     private String getDate(){
@@ -158,9 +253,5 @@ public class MainActivity extends AppCompatActivity
         String date = month + day + year;
 
         return date;
-    }
-
-    public void loadCompleteLists(ArrayList<Trip> list){
-        mCompletedTripsList = list;
     }
 }
