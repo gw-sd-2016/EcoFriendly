@@ -81,7 +81,7 @@ public class MainActivity extends AppCompatActivity
                     getSupportActionBar().setTitle("Progress");
                 }
                 if (historyFragment != null && historyFragment.isVisible()) {
-                    getSupportActionBar().setTitle("History");
+                    getSupportActionBar().setTitle("Emission's List");
                 }
                 if (historyMapFragment != null && historyMapFragment.isVisible()) {
                     getSupportActionBar().setTitle("Map History");
@@ -101,8 +101,8 @@ public class MainActivity extends AppCompatActivity
             getSupportActionBar().setTitle(mTitle);
             startProgressFragment();
 
-            dates = mTripDataProc.loadHistory(getDate());
-            loadNext();
+            //dates = mTripDataProc.loadHistory(getDate());
+            //loadNext();
         }
     }
 
