@@ -29,15 +29,12 @@ public class TripDataProc implements AsyncResponse {
     private SQLiteDatabase mTripDatabase;
     private SQLiteDatabase mSegmentDatabase;
 
-    private ArrayList<Event> history = new ArrayList<>();
-    private ArrayList<TripSeg> segments = new ArrayList<>();
-
     private double drivingTotal = 0;
     private double walkingTotal = 0;
     private double bikingTotal = 0;
     private double transitTotal = 0;
 
-    private Context c;
+    private Context mContext;
 
     private String[] projection = {
             LocationHistoryDatabase.COL_1,
@@ -71,7 +68,7 @@ public class TripDataProc implements AsyncResponse {
     public TripDataProc(Context context){
         TripDataProc.delegate = this;
         initializeDatabase(context);
-        c = context;
+        mContext = context;
     }
 
     private void initializeDatabase(Context context){
@@ -163,8 +160,8 @@ public class TripDataProc implements AsyncResponse {
     }
 
     public void loadData(String date){
-        history.clear();
-        segments.clear();
+        ((MainActivity)(mContext)).history.clear();
+        ((MainActivity)(mContext)).segments.clear();
         drivingTotal = 0;
         walkingTotal = 0;
         bikingTotal = 0;
@@ -192,7 +189,7 @@ public class TripDataProc implements AsyncResponse {
                 Event mEvent = new Event(c.getString(dateRow), c.getString(timeRow),
                         c.getDouble(latitude), c.getDouble(longitude), c.getDouble(velocity),
                         c.getDouble(accuracy));
-                history.add(mEvent);
+                ((MainActivity)(mContext)).history.add(mEvent);
             }
         }
 
@@ -202,48 +199,52 @@ public class TripDataProc implements AsyncResponse {
     }
 
     private void findTrips(int startIndex){
-        if(startIndex < history.size() - 1){
+        if(startIndex < ((MainActivity)(mContext)).history.size() - 1){
             Event start = findTripStart(startIndex);
             Event end = findTripEnd(start);
 
             TripSeg seg = new TripSeg(start,end, -1);
-            segments.add(seg);
+            ((MainActivity)(mContext)).segments.add(seg);
 
-            findTrips(history.indexOf(end) + 1);
+            findTrips(((MainActivity)(mContext)).history.indexOf(end) + 1);
         }
 
-        Log.d("trips found","" + segments.size());
+        Log.d("trips found","" + ((MainActivity)(mContext)).segments.size());
     }
 
     private Event findTripStart(int startIndex){
-        Event start = history.get(startIndex);
+        Event start = ((MainActivity)(mContext)).history.get(startIndex);
 
         startIndex++;
-        for(int x = startIndex; x < history.size() - 1; x++){
-            TripSeg seg = new TripSeg(start, history.get(x), -1);
+        for(int x = startIndex; x < ((MainActivity)(mContext)).history.size() - 1; x++){
+            TripSeg seg = new TripSeg(start, ((MainActivity)(mContext)).history.get(x), -1);
             if(seg.getDuration() < MAX_IDLE_TIME){
-                return history.get(x);
+                return ((MainActivity)(mContext)).history.get(x);
             }
-            start = history.get(x);
+            start = ((MainActivity)(mContext)).history.get(x);
         }
-        return history.get(history.size() - 1);
+        return ((MainActivity)(mContext)).history.get(((MainActivity)(mContext)).history.size() - 1);
     }
 
     private Event findTripEnd(Event start){
-        int startIndex = history.indexOf(start);
-        for(int x = startIndex; x < history.size() - 1; x++){
-            TripSeg seg = new TripSeg(start, history.get(x), -1);
+        int startIndex = ((MainActivity)(mContext)).history.indexOf(start);
+        for(int x = startIndex; x < ((MainActivity)(mContext)).history.size() - 1; x++){
+            TripSeg seg = new TripSeg(start, ((MainActivity)(mContext)).history.get(x), -1);
             if(seg.getDuration() > MAX_IDLE_TIME){
-                return history.get(x);
+                return ((MainActivity)(mContext)).history.get(x);
             }
-            start = history.get(x);
+            start = ((MainActivity)(mContext)).history.get(x);
         }
-        return history.get(history.size() - 1);
+        return ((MainActivity)(mContext)).history.get(((MainActivity)(mContext)).history.size() - 1);
     }
 
     private void checkTrips(String date){
-        for(TripSeg s : segments){
-            getTimeEstimate(s.getStart(), s.getEnd(), segments.indexOf(s), date);
+        for(TripSeg s : ((MainActivity)(mContext)).segments){
+            Log.d("TripDataProc","start: " + s.getStart());
+            Log.d("TripDataProc","end: " + s.getEnd());
+            Log.d("TripDataProc","date: " + date);
+            Log.d("TripDataProc","segment index:" + ((MainActivity)(mContext)).segments.indexOf(s));
+            getTimeEstimate(s.getStart(), s.getEnd(), ((MainActivity)(mContext)).segments.indexOf(s), date);
         }
     }
 
@@ -257,12 +258,17 @@ public class TripDataProc implements AsyncResponse {
         String url2 = lat2 + "," + long2;
 
         TimeEstimate drvEst = new TimeEstimate(); //async task object
+        Log.d("TripDataProc","id: " + id + " String.valueOf(id): " + String.valueOf(id));
         drvEst.execute(url1, url2, String.valueOf(id), date); //runs the estimate determination //coordinate 1, coordinate2, id
     }
 
     @Override
     public void onProcessFinish(String[] result) {
-        TripSeg seg = segments.get(Integer.parseInt(result[4]));
+        Log.d("TripDataProc","loading outputs " + result.length);
+        Log.d("TripDataProc","segments size " + ((MainActivity)(mContext)).segments.size());
+        Log.d("TripDataProc","history size " + ((MainActivity)(mContext)).history.size());
+
+        TripSeg seg = ((MainActivity)(mContext)).segments.get(Integer.parseInt(result[4]));
 
         int actualTimeDif = seg.getDuration();
         int dif = Math.abs(actualTimeDif - Integer.parseInt(result[0]));
@@ -293,9 +299,9 @@ public class TripDataProc implements AsyncResponse {
         addSegmentEntry(seg, lowest);
 
         //when done with all segments of day
-        if(segments.indexOf(seg) + 1 == segments.size()){
+        if(((MainActivity)(mContext)).segments.indexOf(seg) + 1 == ((MainActivity)(mContext)).segments.size()){
             Trip x = new Trip(result[5],drivingTotal,walkingTotal,bikingTotal,transitTotal); //create Trip (days date) and add to list
-            ((MainActivity)c).loadNext();
+            ((MainActivity) mContext).loadNext();
 
             //add the TripData to the database
             addTripEntry(x);
@@ -461,12 +467,7 @@ public class TripDataProc implements AsyncResponse {
                     int sleepTimer = 0;
 
                     getStream:
-
-
                     //give time if google times out and try again after a couple of seconds
-
-
-
                     {
                         while (true) {
                             Log.d("TripDataProc","getting estimate for trip" + params[2]);
@@ -496,11 +497,13 @@ public class TripDataProc implements AsyncResponse {
                     outputs[x] = getEstimate(outputs[x]);
                 }
 
+                Log.d("TripDataProc","params 2 id: " + params[2]);
                 outputs[4] = params[2]; //id
                 outputs[5] = params[3]; //date
-
+                Log.d("TripDataProc","done loading outputs " + outputs.length);
             } catch (IOException e) {
-                //do nothing
+                Log.d("TripDatProc","MOTHERFUCKINGIOEXCEPTION");
+                e.printStackTrace();
             }
 
             return outputs;

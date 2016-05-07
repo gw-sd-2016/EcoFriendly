@@ -83,7 +83,7 @@ public class ProgressFragment extends Fragment {
                 changePercentage = Math.round(changePercentage);
             }
 
-            changePercentage = 45;
+            //changePercentage = 35;
 
             if(changePercentage > 100){
                 title.setText("Emissions have increased by");
