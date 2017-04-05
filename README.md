@@ -1,3 +1,2 @@
 # EcoFriendly
-Tom Senior Design Project
-This Android application project counts the amount of C02 users emit in correspondace with their traveling habits.
+This Android application project counts the daily amount of C02 users emit in correspondace with their traveling habits.The application uses an algorithm that first finds if the user is on a trip (uses gps to figure out if the user is out of their radius, then finds their means of transportation. EcoFriendly automatically finds which type of transportation the user uses on their trip. If the user is using a personal car, they can search the car up on a database to match the co2 emission of that certain car. 
